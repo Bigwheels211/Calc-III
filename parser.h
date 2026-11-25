@@ -138,44 +138,53 @@ advequation condense(advequation eqn, int removeindex){ //removes the value at t
     eqn.tokens = thetokens;
     return eqn;
 }
-int valueOf(char func[], int length){
+int valueOf(char func[]){
+    int length = 0;
+    for (int i = 0; func[i] != '\0'; i++){
+        length++;
+    }
     advequation theEqu = makeadvequn(makeTokenList(func,length));
     advtoken* tokens = theEqu.tokens;
     for (int i = 0; i < theEqu.numTokens; i++){
-        printf("current index being checked: %d\n", i);
         if (tokens[i].type == power && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
             tokens[i].value = powpow(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
             i=0;
+            tokens = theEqu.tokens;
         } else if (tokens[i].type == multiplication && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
             tokens[i].value = multiply(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
             i=0;
+            tokens = theEqu.tokens;
         } else if (tokens[i].type == division && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
             tokens[i].value = divide(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
             i=0;
-        } else if (tokens[i].type == addition && tokens[i - 1].type == number && tokens[i + 1].type == number){
+            tokens = theEqu.tokens;
+        }
+    }
+        for (int i = 0; i < theEqu.numTokens; i++){
+        if (tokens[i].type == addition && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
             tokens[i].value = add(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
             i=0;
+            tokens = theEqu.tokens;
         } else if (tokens[i].type == subtraction && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
             tokens[i].value = subtract(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
             i=0;
+            tokens = theEqu.tokens;
         }
-        tokens = theEqu.tokens;
-        printf("%d\n",theEqu.numTokens);
         if (theEqu.numTokens == 1){
             return theEqu.tokens[0].value;
         }
