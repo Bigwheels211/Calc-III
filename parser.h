@@ -169,8 +169,6 @@ int valueOf(advequation theEqu){
                             } else{
                                 theEqu = condense(theEqu, i + 1);
                                 tokens = theEqu.tokens;
-                                printf("setting index %d ", i);
-                                printf("equal to: %d\n", parresult);
                                 tokens[i].type = number;
                                 tokens[i].value = parresult;
                                 theEqu.tokens = tokens;
@@ -181,7 +179,7 @@ int valueOf(advequation theEqu){
                             tokens = theEqu.tokens;
                         }
                     }
-                    
+                    break;
                 }
             }
         }
