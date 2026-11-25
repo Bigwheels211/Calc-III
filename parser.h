@@ -138,13 +138,54 @@ advequation condense(advequation eqn, int removeindex){ //removes the value at t
     eqn.tokens = thetokens;
     return eqn;
 }
-int valueOf(char func[]){
-    int length = 0;
-    for (int i = 0; func[i] != '\0'; i++){
-        length++;
-    }
-    advequation theEqu = makeadvequn(makeTokenList(func,length));
+int valueOf(advequation theEqu){
     advtoken* tokens = theEqu.tokens;
+    for (int i = 0; i < theEqu.numTokens; i++){
+        if (tokens[i].type == openpar){
+            for (int j = i; j< theEqu.numTokens; j++){
+                if (tokens[j].type == closepar){
+                    int parlength = j-(i + 1);
+                    advtoken* partokens = static_cast<advtoken*>(malloc(parlength * sizeof(advtoken)));
+                    for (int k = 0; k < parlength; k++){
+                        partokens[k] = tokens[i + k + 1];
+                    }
+                    advequation parequ;
+                    parequ.numTokens = parlength;
+                    parequ.tokens = partokens;
+                    int parresult = valueOf(parequ);
+                    bool isClosePar = false;
+                    while (!isClosePar){
+                        if (tokens[i + 1].type == closepar){
+                            if (i !=0 && tokens[i - 1].type == number){
+                                tokens[i].type = multiplication;
+                                tokens[i + 1].type = number;
+                                tokens[i + 1].value = parresult;
+                                theEqu.tokens = tokens;
+                            } else if (i+2 < theEqu.numTokens && tokens[i + 2].type == number){
+                                tokens[i + 1].type = multiplication;
+                                tokens[i].type = number;
+                                tokens[i].value = parresult;
+                                theEqu.tokens = tokens;
+                            } else{
+                                theEqu = condense(theEqu, i + 1);
+                                tokens = theEqu.tokens;
+                                printf("setting index %d ", i);
+                                printf("equal to: %d\n", parresult);
+                                tokens[i].type = number;
+                                tokens[i].value = parresult;
+                                theEqu.tokens = tokens;
+                            }
+                            isClosePar = true;
+                        } else {
+                            theEqu = condense(theEqu, i + 1);
+                            tokens = theEqu.tokens;
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
     for (int i = 0; i < theEqu.numTokens; i++){
         if (tokens[i].type == power && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
@@ -190,4 +231,12 @@ int valueOf(char func[]){
         }
     }
     return 0;
+}
+int valueOfString(char func[]){
+    int length = 0;
+    for (int i = 0; func[i] != '\0'; i++){
+        length++;
+    }
+    advequation theEqu = makeadvequn(makeTokenList(func,length));
+    return valueOf(theEqu);
 }
