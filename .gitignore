@@ -1,0 +1,10 @@
+.DS_Store
+function
+functions
+.vscode/tasks.json
+functions.dSYM/Contents/Info.plist
+functions.dSYM/Contents/Resources/DWARF/functions
+functions.dSYM/Contents/Resources/Relocations/aarch64/functions.yml
+test.dSYM/Contents/Info.plist
+test.dSYM/Contents/Resources/DWARF/test
+test.dSYM/Contents/Resources/Relocations/aarch64/test.yml
