@@ -1,7 +1,8 @@
 #include "parser.h"
 
 int main(int argc, char** argv){
-    char func[] = "713531 + 95 +12378-7554563";
+    char func[] = "53 + 5";
     int num = valueOf(func, 26);
-    return 0;
+    printf("%d\n", num);
+    return num;
 }
