@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 enum tokenType{number,letter,plus,minus,multiply,divide,openpar,closepar,exp};
 struct token {
     tokenType type;
