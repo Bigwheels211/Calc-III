@@ -142,8 +142,13 @@ int valueOf(advequation theEqu){
     advtoken* tokens = theEqu.tokens;
     for (int i = 0; i < theEqu.numTokens; i++){
         if (tokens[i].type == openpar){
-            for (int j = i; j< theEqu.numTokens; j++){
-                if (tokens[j].type == closepar){
+            int parcount = 0;
+            for (int j = i + 1; j< theEqu.numTokens; j++){
+                if (tokens[j].type == openpar){
+                    parcount++;
+                } else if (parcount > 0 && tokens[j].type == closepar){
+                    parcount--;
+                } else if (tokens[j].type == closepar){
                     int parlength = j-(i + 1);
                     advtoken* partokens = static_cast<advtoken*>(malloc(parlength * sizeof(advtoken)));
                     for (int k = 0; k < parlength; k++){
@@ -153,31 +158,28 @@ int valueOf(advequation theEqu){
                     parequ.numTokens = parlength;
                     parequ.tokens = partokens;
                     int parresult = valueOf(parequ);
-                    bool isClosePar = false;
-                    while (!isClosePar){
-                        if (tokens[i + 1].type == closepar){
-                            if (i !=0 && tokens[i - 1].type == number){
-                                tokens[i].type = multiplication;
-                                tokens[i + 1].type = number;
-                                tokens[i + 1].value = parresult;
-                                theEqu.tokens = tokens;
-                            } else if (i+2 < theEqu.numTokens && tokens[i + 2].type == number){
-                                tokens[i + 1].type = multiplication;
-                                tokens[i].type = number;
-                                tokens[i].value = parresult;
-                                theEqu.tokens = tokens;
-                            } else{
-                                theEqu = condense(theEqu, i + 1);
-                                tokens = theEqu.tokens;
-                                tokens[i].type = number;
-                                tokens[i].value = parresult;
-                                theEqu.tokens = tokens;
-                            }
-                            isClosePar = true;
-                        } else {
-                            theEqu = condense(theEqu, i + 1);
-                            tokens = theEqu.tokens;
-                        }
+                    int currentNumdeleted = 0;
+                    while (currentNumdeleted < parlength){
+                        theEqu = condense(theEqu, i + 1);
+                        tokens = theEqu.tokens;
+                        currentNumdeleted++;
+                    }
+                    if (i !=0 && tokens[i - 1].type == number){
+                        tokens[i].type = multiplication;
+                        tokens[i + 1].type = number;
+                        tokens[i + 1].value = parresult;
+                        theEqu.tokens = tokens;
+                    } else if (i+2 < theEqu.numTokens && tokens[i + 2].type == number){
+                        tokens[i + 1].type = multiplication;
+                        tokens[i].type = number;
+                        tokens[i].value = parresult;
+                        theEqu.tokens = tokens;
+                    } else{
+                        theEqu = condense(theEqu, i + 1);
+                        tokens = theEqu.tokens;
+                        tokens[i].type = number;
+                        tokens[i].value = parresult;
+                        theEqu.tokens = tokens;
                     }
                     break;
                 }
