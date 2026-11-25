@@ -122,6 +122,9 @@ int multiply(advtoken num1, advtoken num2){ //multiplies the value of 2 number t
 int divide(advtoken num1, advtoken num2){ //divides the value of 2 number tokens (No safeties (Gotta fix that))
     return num1.value / num2.value;
 }
+int powpow(advtoken base, advtoken exp){ //divides the value of 2 number tokens (No safeties (Gotta fix that))
+    return pow(base.value,base.value);
+}
 int valueOf(char func[], int length){
     advequation theEqu = makeadvequn(makeTokenList(func,length));
     advtoken* tokens = theEqu.tokens;
@@ -135,6 +138,8 @@ int valueOf(char func[], int length){
             return multiply(tokens[i-1],tokens[i+1]);
         } else if (tokens[i].type == division && tokens[i - 1].type == number && tokens[i + 1].type == number){
             return divide(tokens[i-1],tokens[i+1]);
+        } else if (tokens[i].type == exp && tokens[i - 1].type == number && tokens[i + 1].type == number){
+            return powpow(tokens[i-1],tokens[i+1]);
         }
     }
     return 0;
