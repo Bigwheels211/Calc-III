@@ -91,42 +91,88 @@ numberToken checkNumbers(basicequation theEqu, int numIndex){ //Returns the valu
     theNumber.value = result;
     return theNumber;
 }
+advequation addOpp(advequation equ, tokenType type, int index){
+    advtoken* tokens = static_cast<advtoken*>(malloc((equ.numTokens + 1) * sizeof(advtoken)));
+    for (int i = 0; i < index; i++){
+        tokens[i] = equ.tokens[i];
+    }
+    tokens[index].type = type;
+    for (int i = index + 1; i < (equ.numTokens + 1); i++){
+        tokens[i] = equ.tokens[i - 1];
+    }
+    return (advequation){tokens,equ.numTokens + 1};
+}
+advequation condense(advequation eqn, int removeindex){ //removes the value at the index and changes the original eqn
+    advtoken* thetokens = static_cast<advtoken*>(malloc((eqn.numTokens-1) * sizeof(advtoken)));
+    int current = 0;
+    for (int i = 0; i < eqn.numTokens; i++){
+        if (i != removeindex){
+            thetokens[current] = eqn.tokens[i];
+            current++;
+        }
+    }
+    eqn.numTokens = current;
+    eqn.tokens = thetokens;
+    return eqn;
+}
+advequation addNum(advequation equ, int value, int index){
+    advtoken* tokens = static_cast<advtoken*>(malloc((equ.numTokens + 1) * sizeof(advtoken)));
+    for (int i = 0; i < index; i++){
+        tokens[i] = equ.tokens[i];
+    }
+    tokens[index].type = number;
+    tokens[index].value = value;
+    for (int i = index + 1; i < (equ.numTokens + 1); i++){
+        tokens[i] = equ.tokens[i - 1];
+    }
+    return (advequation){tokens,equ.numTokens + 1};
+}
 advequation makeadvequn(basicequation theEqu){ //Turns an equation from a basic to an advanced equation(combines all of the numbers from individual tokens to advanced tokens with integer values)
-    token* basictokens = theEqu.tokens;
-    int numbasic = theEqu.numTokens;
     int advLength = 0;
     advtoken* advtokens = static_cast<advtoken*>(malloc(1 * sizeof(advtoken)));
-    for (int i = 0; i < numbasic; i++){
+    for (int i = 0; i < theEqu.numTokens; i++){
         advLength++;
         advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
-        if (basictokens[i].type == letter){
-            if(i < numbasic - 1 && basictokens[i + 1].type == number){
+        if (theEqu.tokens[i].type == letter){
+            if(i < theEqu.numTokens - 1 && theEqu.tokens[i + 1].type == number){
                 //x5
-                advtokens[advLength - 1].at = basictokens[i].at;
-                advtokens[advLength - 1].type = basictokens[i].type;
+                advtokens[advLength - 1].at = theEqu.tokens[i].at;
+                advtokens[advLength - 1].type = theEqu.tokens[i].type;
                 advLength++;
                 advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
                 advtokens[advLength - 1].type = multiplication;
             }
-            else if (basictokens[i].type == letter && i !=0 && basictokens[i - 1].type == number){
+            else if (theEqu.tokens[i].type == letter && i !=0 && theEqu.tokens[i - 1].type == number){
                 //5x
                 advtokens[advLength - 1].type = multiplication;
                 advLength++;
                 advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
-                advtokens[advLength - 1].at = basictokens[i].at;
-                advtokens[advLength - 1].type = basictokens[i].type;
+                advtokens[advLength - 1].at = theEqu.tokens[i].at;
+                advtokens[advLength - 1].type = theEqu.tokens[i].type;
             } else {
-                advtokens[advLength - 1].at = basictokens[i].at;
-                advtokens[advLength - 1].type = basictokens[i].type;
+                advtokens[advLength - 1].at = theEqu.tokens[i].at;
+                advtokens[advLength - 1].type = theEqu.tokens[i].type;
             }
-        } else if (basictokens[i].type != number){
-            advtokens[advLength - 1].at = basictokens[i].at;
-            advtokens[advLength - 1].type = basictokens[i].type;
-        } else {
+        } else if (theEqu.tokens[i].type == number){
             numberToken theNumber = checkNumbers(theEqu, i);
             advtokens[advLength - 1].type = number;
             advtokens[advLength - 1].value = theNumber.value;
             i += theNumber.length - 1;
+        } else if(theEqu.tokens[i].type == subtraction){
+            if ((i == 0) || (theEqu.tokens[i - 1].type != number && theEqu.tokens[i - 1].type != letter)){
+                advtokens = condense((advequation){advtokens,advLength},i).tokens;
+                advLength--;
+            } else{
+                advtokens[advLength - 1].type = addition;
+            }
+            advLength += 2;
+            advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
+            advtokens[advLength - 2].type = number;
+            advtokens[advLength - 2].value = -1;
+            advtokens[advLength - 1].type = multiplication;
+        } else{
+            advtokens[advLength - 1].type = theEqu.tokens[i].type;
+            advtokens[advLength - 1].at = theEqu.tokens[i].at;
         }
     }
     advequation theadvequ;
@@ -154,19 +200,6 @@ int divide(advtoken num1, advtoken num2){ //divides the value of 2 number tokens
 }
 int powpow(advtoken base, advtoken exp){ //divides the value of 2 number tokens (No safeties (Gotta fix that))
     return pow(base.value,exp.value);
-}
-advequation condense(advequation eqn, int removeindex){ //removes the value at the index and changes the original eqn
-    advtoken* thetokens = static_cast<advtoken*>(malloc((eqn.numTokens-1) * sizeof(advtoken)));
-    int current = 0;
-    for (int i = 0; i < eqn.numTokens; i++){
-        if (i != removeindex){
-            thetokens[current] = eqn.tokens[i];
-            current++;
-        }
-    }
-    eqn.numTokens = current;
-    eqn.tokens = thetokens;
-    return eqn;
 }
 int valueOf(advequation theEqu){ //Returns the value of a function of only numbers and symbols(no variables)
     advtoken* tokens = theEqu.tokens;
@@ -370,7 +403,6 @@ int valueOfStrFunction(char func[], int input, char variable){ //Inputs a string
 }
 advequation calculateDerivative(advequation func){
     int numTok = 1;
-    advtoken* thetokens = static_cast<advtoken*>(malloc((numTok) * sizeof(advtoken)));
     for (int i = 0; i < func.numTokens; i++){
         
     }
