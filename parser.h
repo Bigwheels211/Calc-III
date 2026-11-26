@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-enum tokenType{number,letter,addition,subtraction,multiplication,division,openpar,closepar,power,null};
+enum tokenType{number,letter,addition,subtraction,multiplication,division,openpar,closepar,power};
 struct token {
     tokenType type;
     char at;
@@ -33,7 +33,11 @@ int numTokens(char func[]){ // counts the number of regular tokens in a function
     }
     return numOfTokens;
 }
-basicequation makeTokenList(char func[], int length){ // returns an equation created from the func input
+basicequation makeTokenList(char func[]){ // returns an equation created from the func input
+    int length = 0;
+    for (int i = 0; func[i] != '\0'; i++){
+        length++;
+    }
     int numToken = numTokens(func);
     token* tokens = static_cast<token*>(malloc(numToken * sizeof(token)));
     int j = 0;
@@ -95,7 +99,27 @@ advequation makeadvequn(basicequation theEqu){ //Turns an equation from a basic 
     for (int i = 0; i < numbasic; i++){
         advLength++;
         advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
-        if (basictokens[i].type != number){
+        if (basictokens[i].type == letter){
+            if(i < numbasic - 1 && basictokens[i + 1].type == number){
+                //x5
+                advtokens[advLength - 1].at = basictokens[i].at;
+                advtokens[advLength - 1].type = basictokens[i].type;
+                advLength++;
+                advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
+                advtokens[advLength - 1].type = multiplication;
+            }
+            else if (basictokens[i].type == letter && i !=0 && basictokens[i - 1].type == number){
+                //5x
+                advtokens[advLength - 1].type = multiplication;
+                advLength++;
+                advtokens = static_cast<advtoken*>(realloc(advtokens, advLength * sizeof(advtoken)));
+                advtokens[advLength - 1].at = basictokens[i].at;
+                advtokens[advLength - 1].type = basictokens[i].type;
+            } else {
+                advtokens[advLength - 1].at = basictokens[i].at;
+                advtokens[advLength - 1].type = basictokens[i].type;
+            }
+        } else if (basictokens[i].type != number){
             advtokens[advLength - 1].at = basictokens[i].at;
             advtokens[advLength - 1].type = basictokens[i].type;
         } else {
@@ -119,6 +143,12 @@ int subtract(advtoken num1, advtoken num2){ //subtracts the value of 2 number to
 int multiply(advtoken num1, advtoken num2){ //multiplies the value of 2 number tokens (No safeties (Gotta fix that))
     return num1.value * num2.value;
 }
+bool candivide(advtoken num1, advtoken num2){ //checks to see if the 2 numbers can be divided
+    if (num2.value == 0){
+        return false;
+    }
+    return true;
+}
 int divide(advtoken num1, advtoken num2){ //divides the value of 2 number tokens (No safeties (Gotta fix that))
     return num1.value / num2.value;
 }
@@ -138,7 +168,7 @@ advequation condense(advequation eqn, int removeindex){ //removes the value at t
     eqn.tokens = thetokens;
     return eqn;
 }
-int valueOf(advequation theEqu){
+int valueOf(advequation theEqu){ //Returns the value of a function of only numbers and symbols(no variables)
     advtoken* tokens = theEqu.tokens;
     for (int i = 0; i < theEqu.numTokens; i++){
         if (tokens[i].type == openpar){
@@ -203,6 +233,9 @@ int valueOf(advequation theEqu){
             tokens = theEqu.tokens;
         } else if (tokens[i].type == division && tokens[i - 1].type == number && tokens[i + 1].type == number){
             tokens[i].type = number;
+            if (!candivide(tokens[i-1],tokens[i+1])){
+                printf("Divide by 0 error!");
+            }
             tokens[i].value = divide(tokens[i-1],tokens[i+1]);
             theEqu = condense(theEqu, i + 1);
             theEqu = condense(theEqu, i - 1);
@@ -232,11 +265,113 @@ int valueOf(advequation theEqu){
     }
     return 0;
 }
-int valueOfString(char func[]){
-    int length = 0;
-    for (int i = 0; func[i] != '\0'; i++){
-        length++;
+bool hasError(advequation theEquog){ //checks if the equation contains any errors(divide by 0)
+    advequation theEqu = theEquog;
+    theEqu.tokens = static_cast<advtoken*>(malloc(theEqu.numTokens * sizeof(advtoken)));
+    for (int i = 0; i < theEqu.numTokens; i++){
+        theEqu.tokens[i] = theEquog.tokens[i];
     }
-    advequation theEqu = makeadvequn(makeTokenList(func,length));
-    return valueOf(theEqu);
+    advtoken* tokens = theEqu.tokens;
+    for (int i = 0; i < theEqu.numTokens; i++){
+        if (tokens[i].type == openpar){
+            int parcount = 0;
+            for (int j = i + 1; j< theEqu.numTokens; j++){
+                if (tokens[j].type == openpar){
+                    parcount++;
+                } else if (parcount > 0 && tokens[j].type == closepar){
+                    parcount--;
+                } else if (tokens[j].type == closepar){
+                    int parlength = j-(i + 1);
+                    advtoken* partokens = static_cast<advtoken*>(malloc(parlength * sizeof(advtoken)));
+                    for (int k = 0; k < parlength; k++){
+                        partokens[k] = tokens[i + k + 1];
+                    }
+                    advequation parequ;
+                    parequ.numTokens = parlength;
+                    parequ.tokens = partokens;
+                    int parresult = valueOf(parequ);
+                    int currentNumdeleted = 0;
+                    while (currentNumdeleted < parlength){
+                        theEqu = condense(theEqu, i + 1);
+                        tokens = theEqu.tokens;
+                        currentNumdeleted++;
+                    }
+                    if (i !=0 && tokens[i - 1].type == number){
+                        tokens[i].type = multiplication;
+                        tokens[i + 1].type = number;
+                        tokens[i + 1].value = parresult;
+                        theEqu.tokens = tokens;
+                    } else if (i+2 < theEqu.numTokens && tokens[i + 2].type == number){
+                        tokens[i + 1].type = multiplication;
+                        tokens[i].type = number;
+                        tokens[i].value = parresult;
+                        theEqu.tokens = tokens;
+                    } else{
+                        theEqu = condense(theEqu, i + 1);
+                        tokens = theEqu.tokens;
+                        tokens[i].type = number;
+                        tokens[i].value = parresult;
+                        theEqu.tokens = tokens;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < theEqu.numTokens; i++){
+        if (tokens[i].type == power && tokens[i - 1].type == number && tokens[i + 1].type == number){
+            tokens[i].type = number;
+            tokens[i].value = powpow(tokens[i-1],tokens[i+1]);
+            theEqu = condense(theEqu, i + 1);
+            theEqu = condense(theEqu, i - 1);
+            i=0;
+            tokens = theEqu.tokens;
+        } else if (tokens[i].type == multiplication && tokens[i - 1].type == number && tokens[i + 1].type == number){
+            tokens[i].type = number;
+            tokens[i].value = multiply(tokens[i-1],tokens[i+1]);
+            theEqu = condense(theEqu, i + 1);
+            theEqu = condense(theEqu, i - 1);
+            i=0;
+            tokens = theEqu.tokens;
+        } else if (tokens[i].type == division && tokens[i - 1].type == number && tokens[i + 1].type == number){
+            tokens[i].type = number;
+            if (!candivide(tokens[i-1],tokens[i+1])){
+                return true;
+            }
+            tokens[i].value = divide(tokens[i-1],tokens[i+1]);
+            theEqu = condense(theEqu, i + 1);
+            theEqu = condense(theEqu, i - 1);
+            i=0;
+            tokens = theEqu.tokens;
+        }
+    }
+    return false;
+}
+int valueOfString(char func[]){ //Same as valueOf, but just inputting a string instead of an advequation
+    return valueOf(makeadvequn(makeTokenList(func)));
+}
+int valueOfFunction(advequation func, int input, char variable){ //Inputs a function with one variable and evaluates the function at a specific variable value
+    advtoken* tokens = func.tokens;
+    for (int i = 0; i < func.numTokens; i++){
+        if (tokens[i].type == letter && tokens[i].at == variable){
+            tokens[i].type = number;
+            tokens[i].value = input;
+            
+        }
+        func.tokens = tokens;
+    }
+    if (hasError(func)){
+        printf("");
+    }
+    return valueOf(func);
+}
+int valueOfStrFunction(char func[], int input, char variable){ //Inputs a string function with one variable and evaluates the function at a specific variable value
+    return valueOfFunction(makeadvequn(makeTokenList(func)), input, variable);
+}
+advequation calculateDerivative(advequation func){
+    int numTok = 1;
+    advtoken* thetokens = static_cast<advtoken*>(malloc((numTok) * sizeof(advtoken)));
+    for (int i = 0; i < func.numTokens; i++){
+        
+    }
 }
